@@ -1,0 +1,12 @@
+# fetched data
+*.json
+
+# vim swap file
+*.swp
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# config file
+config.yaml
