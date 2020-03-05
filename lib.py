@@ -45,7 +45,7 @@ def bitdecode_answer(answer):
     if answer & SelectionFlags.G: ans.append('G')
     if answer & SelectionFlags.H: ans.append('H')
 
-    return ','.join(ans)
+    return ''.join(ans)
 
 
 def get_config(filename="./config.yaml"):

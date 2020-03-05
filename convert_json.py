@@ -1,7 +1,7 @@
 import argparse
 import json
 
-from lib import bitdecode_answer, get_config
+from lib import bitdecode_answer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -10,19 +10,30 @@ if __name__ == "__main__":
                         '--output',
                         default=None,
                         help="Output javascript file")
-    parser.add_argument('-c',
-                        '--config',
-                        default='./config.yaml',
-                        help="Config yaml file")
+    parser.add_argument('-I',
+                        '--id',
+                        required=True,
+                        help="Id in url query parameter")
+    parser.add_argument('-T',
+                        '--true_answer',
+                        default=False,
+                        action='store_true',
+                        help="Use true answer")
     args = parser.parse_args()
 
     with open(args.exhaust_file) as f:
-        config = get_config(args.config)
         data = json.load(f)
-        matrix = [[
-            f"{config['USERID']}{q['id']}",
-            bitdecode_answer(q['user_selection'])
-        ] for q in data['questions'] if q['user_selection'] != 0]
+
+        if args.true_answer:
+            matrix = [[
+                f"{args.id}{q['id']}",
+                ','.join(list(q['answer'])),
+            ] for q in data['questions'] if q['answer'] != None]
+        else:
+            matrix = [[
+                f"{args.id}{q['id']}",
+                ','.join(list(bitdecode_answer(q['user_selection']))),
+            ] for q in data['questions'] if q['user_selection'] != 0]
 
         script = f"""
         data = JSON.parse(`{json.dumps(matrix, ensure_ascii=False)}`);
