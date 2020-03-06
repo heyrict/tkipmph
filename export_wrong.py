@@ -16,7 +16,7 @@ SINGLE_QUOTED_RE = re.compile(r"'([^']+)'")
 
 def text(result_set):
     text_set = [r.text for r in result_set]
-    return ''.join(text_set)
+    return '\n'.join(text_set)
 
 
 def get_parameter(text):
@@ -25,7 +25,7 @@ def get_parameter(text):
         return match.groups()[0]
 
 
-def get_type(test_papers):
+def get_model(test_papers):
     desc = test_papers.select('div.list_papers_head span.ju_pl5')
     if not desc:
         return None
@@ -38,6 +38,7 @@ def parse_paper(paper):
     selection_grp = paper.select('ul')
     selections = selection_grp[0].select('li')
     post_buttons = paper.select('div.table_collection ul li button')
+    model = get_model(paper)
 
     answers = paper.select('span.answer_d')
     true_answer = answers[0]
@@ -45,7 +46,7 @@ def parse_paper(paper):
     my_answer = answers[1] if len(answers) > 1 else None
 
     return {
-        'title': text(title),
+        'title': f"({model}) {text(title)}",
         'selections': [s.text[1:] for s in selections],
         'true_answer': true_answer.text,
         'my_answer': my_answer.text if my_answer else '',
@@ -86,7 +87,6 @@ def go_soup(soup, reverse=False):
     outputs = []
 
     for papers in papers_list:
-        _t = get_type(papers)
         output = parse_paper(papers)
         outputs.append(output)
 

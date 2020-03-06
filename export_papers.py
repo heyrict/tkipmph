@@ -59,12 +59,12 @@ def get_cookies(config):
     return cookies
 
 
-def get_testpaper(question_id, student_id, paper_id, exam_id, config, cookies):
+def get_testpaper(question_id, esid, paper_id, exam_id, config, cookies):
     headers = get_headers('http://tk.ipmph.com/exam/a/exam/examTask/toAnswer',
                           config)
     res = requests.post(ANSWERTHIS_EP,
                         data={
-                            'examStudent.id': student_id,
+                            'examStudent.id': esid,
                             'question.id': question_id,
                             'paper.id': paper_id,
                             'exam.id': exam_id,
@@ -75,7 +75,7 @@ def get_testpaper(question_id, student_id, paper_id, exam_id, config, cookies):
 
 
 def parse_testpage(pagesrc):  # {{{
-    student_id = find_value('examStudentId', pagesrc)
+    esid = find_value('examStudentId', pagesrc)
     paper_id = find_value('paper.id', pagesrc)
     exam_id = find_value('examId', pagesrc)
 
@@ -83,7 +83,7 @@ def parse_testpage(pagesrc):  # {{{
     question_list = [node['name'] for node in soup.select('button.cell')]
     return {
         'questions': question_list,
-        'student_id': student_id,
+        'esid': esid,
         'paper_id': paper_id,
         'exam_id': exam_id,
     }  # }}}
@@ -156,9 +156,8 @@ def main():
     for tpid in tqdm(tpdata['questions']):
         if tpid in tp_viewed: continue
 
-        testpaper = get_testpaper(tpid, tpdata['student_id'],
-                                  tpdata['paper_id'], tpdata['exam_id'],
-                                  config, cookies)
+        testpaper = get_testpaper(tpid, tpdata['esid'], tpdata['paper_id'],
+                                  tpdata['exam_id'], config, cookies)
 
         questions = pipe_testpaper(testpaper)
         all_questions.extend(questions)
@@ -167,7 +166,8 @@ def main():
 
     results = json.dumps({
         'questions': all_questions,
-    }, ensure_ascii=False)
+        'id': tpdata['esid'],
+    }, ensure_ascii=False) # yapf: disable
 
     if args.output:
         with open(args.output, 'w') as f:

@@ -12,7 +12,7 @@ if __name__ == "__main__":
                         help="Output javascript file")
     parser.add_argument('-I',
                         '--id',
-                        required=True,
+                        default=None,
                         help="Id in url query parameter")
     parser.add_argument('-T',
                         '--true_answer',
@@ -23,6 +23,16 @@ if __name__ == "__main__":
 
     with open(args.exhaust_file) as f:
         data = json.load(f)
+
+        if args.id:
+            esid = args.id
+        else:
+            esid = data.get('esid')
+
+        if esid is None:
+            raise Exception(
+                "Exam Student ID must be provided."
+                "either with id option, or provided in the input file")
 
         if args.true_answer:
             matrix = [[
