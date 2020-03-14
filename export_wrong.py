@@ -46,7 +46,8 @@ def parse_paper(paper):
     my_answer = answers[1] if len(answers) > 1 else None
 
     return {
-        'title': f"({model}) {text(title)}",
+        'model': model,
+        'title': text(title),
         'selections': [s.text[1:] for s in selections],
         'true_answer': true_answer.text,
         'my_answer': my_answer.text if my_answer else '',
@@ -67,7 +68,8 @@ def format_outputs(outputs):
         questions.append({
             'type': 'Question',
             'id': q['qid'],
-            'question': q['title'],
+            'model': q['model'],
+            'question': f"({q['model']}) {q['title']}",
             'selections': selections,
             'answer': q['true_answer'],
             'user_selection': bitencode_answer(q['my_answer']) if q['my_answer'] else 0,
@@ -78,17 +80,16 @@ def format_outputs(outputs):
     }, ensure_ascii=False)
 
 
-def go_soup(soup, reverse=False):
+def go_soup(soup, order_by: None, reverse=False):
     papers_list = soup.select('div.list_papers')
-
-    if reverse:
-        papers_list = reversed(papers_list)
-
     outputs = []
 
     for papers in papers_list:
         output = parse_paper(papers)
         outputs.append(output)
+
+    if order_by is not None:
+        outputs.sort(key=lambda p: p[order_by], reverse=reverse)
 
     return format_outputs(outputs)
 
@@ -100,6 +101,11 @@ if __name__ == "__main__":
                         '--output',
                         default=None,
                         help="Output json file")
+    parser.add_argument('-O',
+                        '--order-by',
+                        default=None,
+                        choices=['id', 'model', 'question'],
+                        help="Order by field")
     parser.add_argument('-r',
                         '--reverse',
                         default=False,
@@ -109,7 +115,7 @@ if __name__ == "__main__":
 
     with open(args.htmlfile) as f:
         soup = BeautifulSoup(f.read(), 'lxml')
-        results = go_soup(soup, reverse=args.reverse)
+        results = go_soup(soup, order_by=args.order_by, reverse=args.reverse)
 
     if args.output:
         with open(args.output, 'w') as f:
