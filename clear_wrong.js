@@ -11,7 +11,7 @@ getparam = s => {
 };
 document.querySelectorAll("button.btn").forEach(node => {
   clickfndesc = node.getAttribute("onclick");
-  if (clickfndesc) {
+  if (clickfndesc && clickfndesc.startsWith("delQuestion")) {
     qid = getparam(clickfndesc);
     $.post("http://tk.ipmph.com/exam/a/exam/questionWrong/deleteOne", {
       prop5: "del",
