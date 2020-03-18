@@ -4,10 +4,12 @@ Export tk.ipmph.com wrong questions data to json for use in exhaust.
 
 import argparse
 import json
+import os
 import re
+from urllib.request import urlopen, urlsplit
 
-import requests
 from bs4 import BeautifulSoup
+from tqdm.cli import tqdm
 
 from lib import bitencode_answer
 
@@ -33,8 +35,18 @@ def get_model(test_papers):
     return desc[0].text[3:]
 
 
+def maybe_download(url, output_file):
+    # Skips downloading the file if it exists
+    if os.path.exists(output_file):
+        return
+
+    with urlopen(url) as res, open(output_file, "wb") as f:
+        f.write(res.read())
+
+
 def parse_paper(paper):
     title = paper.select('span.test_paper_head')
+    img = paper.select('span.test_paper_head img')
     selection_grp = paper.select('ul')
     selections = selection_grp[0].select('li')
     post_buttons = paper.select('div.table_collection ul li button')
@@ -51,6 +63,7 @@ def parse_paper(paper):
         'selections': [s.text[1:] for s in selections],
         'true_answer': true_answer.text,
         'my_answer': my_answer.text if my_answer else '',
+        'assets': [f"http://tk.ipmph.com{i['src']}" for i in img],
         'qid': qid,
     }
 
@@ -72,6 +85,7 @@ def format_outputs(outputs):
             'question': f"({q['model']}) {q['title']}",
             'selections': selections,
             'answer': q['true_answer'],
+            'assets': q['assets'],
             'user_selection': bitencode_answer(q['my_answer']) if q['my_answer'] else 0,
         }) # yapf: disable
 
@@ -80,7 +94,7 @@ def format_outputs(outputs):
     }, ensure_ascii=False)
 
 
-def go_soup(soup, order_by: None, reverse=False):
+def go_soup(soup, order_by: None, reverse=False, assets_folder=None):
     papers_list = soup.select('div.list_papers')
     outputs = []
 
@@ -90,6 +104,28 @@ def go_soup(soup, order_by: None, reverse=False):
 
     if order_by is not None:
         outputs.sort(key=lambda p: p[order_by], reverse=reverse)
+
+    if assets_folder is not None:
+        assets = []
+
+        def _map_asset(img):
+            img_name = os.path.basename(urlsplit(img).path)
+            img_path = os.path.join(assets_folder, img_name)
+            assets.append((img, img_path))
+            return img_path
+
+        def _map_paper(o):
+            o['assets'] = list(map(_map_asset, o['assets']))
+            return o
+
+        if not os.path.exists(assets_folder):
+            os.mkdir(assets_folder)
+
+        outputs = list(map(_map_paper, outputs))
+
+        for (url, path) in tqdm(assets,
+                                f"Downloading assets to {assets_folder}"):
+            maybe_download(url, path)
 
     return format_outputs(outputs)
 
@@ -101,6 +137,10 @@ if __name__ == "__main__":
                         '--output',
                         default=None,
                         help="Output json file")
+    parser.add_argument('-d',
+                        '--assets-dir',
+                        default=None,
+                        help="Directory to store assets")
     parser.add_argument('-O',
                         '--order-by',
                         default=None,
@@ -115,7 +155,10 @@ if __name__ == "__main__":
 
     with open(args.htmlfile) as f:
         soup = BeautifulSoup(f.read(), 'lxml')
-        results = go_soup(soup, order_by=args.order_by, reverse=args.reverse)
+        results = go_soup(soup,
+                          order_by=args.order_by,
+                          reverse=args.reverse,
+                          assets_folder=args.assets_dir)
 
     if args.output:
         with open(args.output, 'w') as f:
