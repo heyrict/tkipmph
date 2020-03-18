@@ -9,3 +9,4 @@ Tools to manipulate with tki.pmph.com for convenience, including the following s
 | `collect_all.js`   | Code to collect all questions on the current page              |
 | `export_wrong.py`  | Export saved page with wrong questions to exhaust `.json` file |
 | `export_papers.py` | Export paper to exhaust `.json` file, without true answers     |
+| `filter_visual.js` | Filter the visualable table                                    |
