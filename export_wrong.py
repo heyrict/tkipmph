@@ -104,6 +104,8 @@ def go_soup(soup, order_by: None, reverse=False, assets_folder=None):
 
     if order_by is not None:
         outputs.sort(key=lambda p: p[order_by], reverse=reverse)
+    elif reverse:
+        outputs = reversed(outputs)
 
     if assets_folder is not None:
         assets = []
